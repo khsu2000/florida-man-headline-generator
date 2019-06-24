@@ -1,6 +1,6 @@
 '''
 Scrapes various news sources for links related to Florida man.
-Stores results in headlines.csv
+Stores results in headlines.csv.
 '''
 
 import csv
@@ -48,8 +48,9 @@ def scrape(source, filename):
                 article_title = headline.find_all("div", {"class" : "queryly_item_title"})[0].decode_contents()
                 article_link = headline.a["href"]
                 article_date = headline.find_all("div", {"class" : "queryly_item_date"})[0].decode_contents()
-                print(article_title)
-                entries.append([article_title, article_link, article_date])
+                if is_florida_man_article(article_title):
+                    print(article_title)
+                    entries.append([article_title, article_link, article_date])
             driver.find_element_by_class_name("queryly_paging").click()
             WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, "queryly_item_title")))
         except Exception as e:
@@ -74,6 +75,16 @@ def write_to_csv(content, filename):
     """
     df = pd.DataFrame(content[1:], columns=content[0])
     df.to_csv(filename, index=False)
+
+def is_florida_man_article(article):
+    """Returns boolean to check if article title starts with 'Florida man'
+
+    Parameters
+    ----------
+    article: str
+        A string name of the article's title
+    """
+    return article.split()[0].lower() == "florida" and article.split()[1].lower() == "man"
 
 if __name__ == "__main__":
     scrape(source, filename)
