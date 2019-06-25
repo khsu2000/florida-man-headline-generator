@@ -5,12 +5,14 @@ Stores results in headlines.csv.
 
 import csv
 import pandas as pd
+import traceback
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 
 # Specify news sources here
 source = "https://www.local10.com/search?searchTerm=florida+man"
@@ -18,8 +20,16 @@ source = "https://www.local10.com/search?searchTerm=florida+man"
 # Specify filename here where data is being stored
 filename = "headlines.csv"
 
+# Specify how many times to click 'next page' to load more results
+load_limit = 200
+
 # Creates the chrome driver
-driver = webdriver.Chrome("./chromedriver_win32/chromedriver.exe")
+chrome_options = Options()
+
+# Uncomment this line to change driver to headless; may lead to error with clicking images on accident
+# chrome_options.headless = True
+
+driver = webdriver.Chrome("./chromedriver_win32/chromedriver.exe", options=chrome_options)
 delay = 3
 
 def scrape(source, filename):
@@ -36,9 +46,8 @@ def scrape(source, filename):
         The name of the file the articles are being written into.
     """
     driver.get(source)
-    load_limit = 10
 
-    entries = [["title", "link", "date"]]
+    entries = pd.DataFrame(columns=["title", "link", "date"])
 
     for _ in range(load_limit):
         try:
@@ -50,15 +59,33 @@ def scrape(source, filename):
                 article_date = headline.find_all("div", {"class" : "queryly_item_date"})[0].decode_contents()
                 if is_florida_man_article(article_title):
                     print(article_title)
-                    entries.append([article_title, article_link, article_date])
-            driver.find_element_by_class_name("queryly_paging").click()
-            WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, "queryly_item_title")))
-        except Exception as e:
-            print("Incurred the following error:\n" + str(e))
-            print("Saving currently scraped results in 'headlines.csv'.")
-            break
+                    entry = pd.DataFrame({"title" : [article_title],
+                                          "link" : [article_link],
+                                          "date" : [article_date]})
+                    entries = entries.append(entry, ignore_index = True)
+                    entries.drop_duplicates()
 
-    write_to_csv(entries, filename)
+            # Delay for element to be clickable
+            WebDriverWait(driver, delay).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="resultdata"]/a[1]/h3')))
+
+            buttons = driver.find_elements_by_xpath('//*[@id="resultdata"]/a[1]/h3')
+            for btn in buttons:
+                if btn.get_attribute("innerHTML").strip().lower() == "next page":
+                    next_page = btn
+                    break
+
+            actions = ActionChains(driver)
+            actions.move_to_element(next_page).click().perform()
+
+            undoMisclick()
+
+            # Delay for next set of articles to load
+            WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, "queryly_item_title")))
+        except Exception:
+            print("\nIncurred the following error:\n")
+            print(traceback.format_exc())
+            write_to_csv(entries, filename)
+            return
 
 def write_to_csv(content, filename):
     """Writes list to file specified by filename.
@@ -73,8 +100,11 @@ def write_to_csv(content, filename):
     filename:
         The name of the file the string is being written into.
     """
-    df = pd.DataFrame(content[1:], columns=content[0])
-    df.to_csv(filename, index=False)
+    content.drop_duplicates()
+    content.to_csv(filename, index=False)
+
+    print("Scraped {} sources.".format(len(content.index)))
+    print("Saving currently scraped results in 'headlines.csv'.")
 
 def is_florida_man_article(article):
     """Returns boolean to check if article title starts with 'Florida man'
@@ -85,6 +115,20 @@ def is_florida_man_article(article):
         A string name of the article's title
     """
     return article.split()[0].lower() == "florida" and article.split()[1].lower() == "man"
+
+def undoMisclick():
+    """Checks if URL is local10 news; if URL is not local10 news, stops scraper.
+
+    Parameters
+    ----------
+    None
+    """
+    global load_limit
+
+    if driver.current_url != source:
+        print("\nAccidentally navigated to a wrong location; stopping scraper.")
+        print("Navigated to: {}".format(driver.current_url))
+        raise Exception("Navigated to invalid URL.")
 
 if __name__ == "__main__":
     scrape(source, filename)
