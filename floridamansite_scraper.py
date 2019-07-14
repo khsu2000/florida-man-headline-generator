@@ -1,6 +1,6 @@
 '''
-Scrapes local10.com for links related to Florida man.
-Stores results in local10_headlines.csv.
+Scrapes floridaman.com for links related to Florida man.
+Stores results in floridaman_com_headlines.csv.
 '''
 
 import csv
@@ -15,19 +15,19 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 
 # Specify news sources here
-source = "https://www.local10.com/search?searchTerm=florida+man"
+source = "https://floridaman.com/"
 
 # Specify filename here where data is being stored
-filename = "training_data/local10_headlines2.csv"
+filename = "training_data/floridaman_com_headlines.csv"
 
 # Specify how many times to click 'next page' to load more results
-load_limit = 200
+load_limit = 14
 
 # Creates the chrome driver
 chrome_options = Options()
 
 # Uncomment this line to change driver to headless; may lead to error with clicking images on accident
-# chrome_options.headless = True
+chrome_options.headless = True
 
 driver = webdriver.Chrome("./chromedriver_win32/chromedriver.exe", options=chrome_options)
 delay = 3
@@ -49,38 +49,24 @@ def scrape(source, filename):
 
     entries = pd.DataFrame(columns=["title", "link"])
 
-    for _ in range(load_limit):
+    for page in range(2, load_limit + 2):
         try:
             soup = BeautifulSoup(driver.page_source, "html5lib")
-            headlines = soup.find_all("div", {"class" : "queryly_item"})
+            headlines = soup.find_all("h3", {"class" : "entry-title"})
             for headline in headlines:
-                article_title = headline.find_all("div", {"class" : "queryly_item_title"})[0].decode_contents()
+                article_title = headline.a.decode_contents()
                 article_link = headline.a["href"]
-                if is_florida_man_article(article_title):
-                    print(article_title)
+                if is_florida_man_article(article_link):
                     entry = pd.DataFrame({"title" : [article_title],
                                           "link" : [article_link]})
-                    entries = entries.append(entry, ignore_index = True)
-
-            # Delay for element to be clickable
-            WebDriverWait(driver, delay).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="resultdata"]/a[1]/h3')))
-
-            buttons = driver.find_elements_by_xpath('//*[@id="resultdata"]/a[1]/h3')
-            for btn in buttons:
-                if btn.get_attribute("innerHTML").strip().lower() == "next page":
-                    next_page = btn
-                    break
-            actions = ActionChains(driver)
-            actions.move_to_element(next_page).click().perform()
-            undoMisclick()
-
-            # Delay for next set of articles to load
-            WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, "queryly_item_title")))
+                    entries = entries.append(entry, ignore_index=True)
+            driver.get(source + "page/{}/".format(page))
         except Exception:
             print("\nIncurred the following error:\n")
             print(traceback.format_exc())
-            write_to_csv(entries, filename)
-            return
+            break
+
+    write_to_csv(entries, filename)
 
 def write_to_csv(content, filename):
     """Writes list to file specified by filename.
@@ -90,8 +76,8 @@ def write_to_csv(content, filename):
 
     Parameters
     ----------
-    content: list
-        A list of lists to be written into the csv file.
+    content: pandas DataFrame
+        A DataFrame containing titles and links for all headlines.
     filename:
         The name of the file the string is being written into.
     """
@@ -101,15 +87,15 @@ def write_to_csv(content, filename):
     print("Scraped {} sources.".format(len(content.index)))
     print("Saving currently scraped results in '{}'.".format(filename))
 
-def is_florida_man_article(article):
-    """Returns boolean to check if article title starts with 'Florida man'
+def is_florida_man_article(link):
+    """Returns boolean to check if link is a floridaman.com article
 
     Parameters
     ----------
     article: str
-        A string name of the article's title
+        A string of the href an <a> element contains
     """
-    return "florida man" in article.lower()
+    return "https://floridaman.com/" in link
 
 def undoMisclick():
     """Checks if URL is local10 news; if URL is not local10 news, stops scraper.
