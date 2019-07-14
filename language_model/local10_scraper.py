@@ -1,6 +1,6 @@
 '''
-Scrapes local10.com for links related to Florida man.
-Stores results in local10_headlines.csv.
+Scrapes various news sources for links related to Florida man.
+Stores results in headlines.csv.
 '''
 
 import csv
@@ -18,7 +18,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 source = "https://www.local10.com/search?searchTerm=florida+man"
 
 # Specify filename here where data is being stored
-filename = "training_data/local10_headlines2.csv"
+filename = "headlines.csv"
 
 # Specify how many times to click 'next page' to load more results
 load_limit = 200
@@ -47,7 +47,7 @@ def scrape(source, filename):
     """
     driver.get(source)
 
-    entries = pd.DataFrame(columns=["title", "link"])
+    entries = pd.DataFrame(columns=["title", "link", "date"])
 
     for _ in range(load_limit):
         try:
@@ -56,11 +56,14 @@ def scrape(source, filename):
             for headline in headlines:
                 article_title = headline.find_all("div", {"class" : "queryly_item_title"})[0].decode_contents()
                 article_link = headline.a["href"]
+                article_date = headline.find_all("div", {"class" : "queryly_item_date"})[0].decode_contents()
                 if is_florida_man_article(article_title):
                     print(article_title)
                     entry = pd.DataFrame({"title" : [article_title],
-                                          "link" : [article_link]})
+                                          "link" : [article_link],
+                                          "date" : [article_date]})
                     entries = entries.append(entry, ignore_index = True)
+                    entries.drop_duplicates()
 
             # Delay for element to be clickable
             WebDriverWait(driver, delay).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="resultdata"]/a[1]/h3')))
@@ -70,8 +73,10 @@ def scrape(source, filename):
                 if btn.get_attribute("innerHTML").strip().lower() == "next page":
                     next_page = btn
                     break
+
             actions = ActionChains(driver)
             actions.move_to_element(next_page).click().perform()
+
             undoMisclick()
 
             # Delay for next set of articles to load
@@ -95,11 +100,11 @@ def write_to_csv(content, filename):
     filename:
         The name of the file the string is being written into.
     """
-    content = content.drop_duplicates()
+    content.drop_duplicates()
     content.to_csv(filename, index=False)
 
     print("Scraped {} sources.".format(len(content.index)))
-    print("Saving currently scraped results in '{}'.".format(filename))
+    print("Saving currently scraped results in 'headlines.csv'.")
 
 def is_florida_man_article(article):
     """Returns boolean to check if article title starts with 'Florida man'
@@ -109,7 +114,7 @@ def is_florida_man_article(article):
     article: str
         A string name of the article's title
     """
-    return "florida man" in article.lower()
+    return article.split()[0].lower() == "florida" and article.split()[1].lower() == "man"
 
 def undoMisclick():
     """Checks if URL is local10 news; if URL is not local10 news, stops scraper.
