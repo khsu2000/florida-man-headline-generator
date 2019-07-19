@@ -18,7 +18,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 source = "https://www.local10.com/search?searchTerm=florida+man"
 
 # Specify filename here where data is being stored
-filename = "headlines.csv"
+filename = "training_data/local10_headlines2.csv"
 
 # Specify how many times to click 'next page' to load more results
 load_limit = 200
@@ -63,20 +63,16 @@ def scrape(source, filename):
                                           "link" : [article_link],
                                           "date" : [article_date]})
                     entries = entries.append(entry, ignore_index = True)
-                    entries.drop_duplicates()
 
             # Delay for element to be clickable
             WebDriverWait(driver, delay).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="resultdata"]/a[1]/h3')))
-
             buttons = driver.find_elements_by_xpath('//*[@id="resultdata"]/a[1]/h3')
             for btn in buttons:
                 if btn.get_attribute("innerHTML").strip().lower() == "next page":
                     next_page = btn
                     break
-
             actions = ActionChains(driver)
             actions.move_to_element(next_page).click().perform()
-
             undoMisclick()
 
             # Delay for next set of articles to load
@@ -100,21 +96,21 @@ def write_to_csv(content, filename):
     filename:
         The name of the file the string is being written into.
     """
-    content.drop_duplicates()
+    content = content.drop_duplicates()
     content.to_csv(filename, index=False)
 
     print("Scraped {} sources.".format(len(content.index)))
-    print("Saving currently scraped results in 'headlines.csv'.")
+    print("Saving currently scraped results in '{}'.".format(filename))
 
 def is_florida_man_article(article):
-    """Returns boolean to check if article title starts with 'Florida man'
+    """Returns boolean to check if 'florida man' in article headline.
 
     Parameters
     ----------
     article: str
         A string name of the article's title
     """
-    return article.split()[0].lower() == "florida" and article.split()[1].lower() == "man"
+    return "florida man" in article.lower()
 
 def undoMisclick():
     """Checks if URL is local10 news; if URL is not local10 news, stops scraper.
