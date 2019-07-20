@@ -11,7 +11,7 @@ from collections import defaultdict
 directory = "training_data/"
 
 # specify csv file name here
-filenames = ["local10_headlines.csv", "floridaman_com_headlines.csv"]
+filenames = ["local10_headlines.csv", "floridaman_com_headlines.csv", "cbs_miami_headlines.csv"]
 
 # specify what value of n to use here
 n = 2
@@ -207,6 +207,22 @@ def greeting():
     """.format(filenames)
     )
 
+def get_seed():
+    """Sees if user wants to enter a seed to fix headline generation.
+
+    Parameters
+    ----------
+    none
+    """
+    seed = input("\n[OPTIONAL] Enter an integer seed: ")
+    try:
+        seed = int(seed)
+        np.random.seed(seed)
+        print("Done! Random seed is {}.".format(seed))
+    except:
+        print("No seed selected.")
+        return
+
 def change_n(headline_aggregate, entries):
     """Changes the value of n. Returns the newly trained headline_aggregate.
 
@@ -276,11 +292,15 @@ def get_input(headline_aggregate, entries):
     entries: DataFrame
         A DataFrame containing all headline entries.
     """
-    implemented = {"n" : change_n, "g" : print_headlines, "q" : exit, "exit" : exit}
+    implemented = {"n" : change_n,\
+        "g" : print_headlines,\
+        "q" : exit,\
+        "exit" : exit,\
+        "exit()" : exit}
     print("\nPlease enter one of the following commands.")
     print(
     """
-    (N) Change the value of n (n is currently {0})
+    (N) Change the value of n and retrain model (n is currently {0})
     (G) Generate and print headlines
     (Q) Quit
     """.format(n)
@@ -291,14 +311,14 @@ def get_input(headline_aggregate, entries):
         print("\nPlease enter a valid command.")
         print(
         """
-        (N) Change the value of n (n is currently: {0})
+        (N) Change the value of n and retrain model (n is currently: {0})
         (G) Generate and print headlines
         (Q) Quit
         """.format(n)
         )
         user_input = input()
     print()
-    if user_input == "q":
+    if implemented[user_input] == exit:
         implemented[user_input]()
     else:
         return implemented[user_input](headline_aggregate, entries)
@@ -313,6 +333,7 @@ def user_prompts():
     entries = load_files(filenames)
     headline_aggregate = generate_grams(entries)
     greeting()
+    get_seed()
     while(True):
         headline_aggregate = get_input(headline_aggregate, entries) or headline_aggregate
 

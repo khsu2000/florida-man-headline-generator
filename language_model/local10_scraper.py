@@ -1,9 +1,8 @@
 '''
-Scrapes various news sources for links related to Florida man.
+Scrapes local10.com for links related to Florida man.
 Stores results in headlines.csv.
 '''
 
-import csv
 import pandas as pd
 import traceback
 from bs4 import BeautifulSoup
@@ -26,17 +25,14 @@ load_limit = 200
 # Creates the chrome driver
 chrome_options = Options()
 
-# Uncomment this line to change driver to headless; may lead to error with clicking images on accident
-# chrome_options.headless = True
+# Set to true to hide browser
+chrome_options.headless = True
 
 driver = webdriver.Chrome("./chromedriver_win32/chromedriver.exe", options=chrome_options)
 delay = 3
 
 def scrape(source, filename):
-    """Reads headlines and links of articles to a text file.
-
-    Takes a search query string for Florida man articles and finds the headlines
-    and corresponding article links into a text file.
+    """Writes headlines and links of articles to a text file.
 
     Parameters
     ----------
@@ -58,7 +54,7 @@ def scrape(source, filename):
                 article_link = headline.a["href"]
                 article_date = headline.find_all("div", {"class" : "queryly_item_date"})[0].decode_contents()
                 if is_florida_man_article(article_title):
-                    print(article_title)
+                    # print(article_title)
                     entry = pd.DataFrame({"title" : [article_title],
                                           "link" : [article_link],
                                           "date" : [article_date]})

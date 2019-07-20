@@ -3,16 +3,11 @@ Scrapes floridaman.com for links related to Florida man.
 Stores results in floridaman_com_headlines.csv.
 '''
 
-import csv
 import pandas as pd
 import traceback
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
 
 # Specify news sources here
 source = "https://floridaman.com/"
@@ -21,22 +16,19 @@ source = "https://floridaman.com/"
 filename = "training_data/floridaman_com_headlines.csv"
 
 # Specify how many times to click 'next page' to load more results
-load_limit = 14
+load_limit = 100
 
 # Creates the chrome driver
 chrome_options = Options()
 
-# Uncomment this line to change driver to headless; may lead to error with clicking images on accident
+# Set this line to true to hide browser
 chrome_options.headless = True
 
 driver = webdriver.Chrome("./chromedriver_win32/chromedriver.exe", options=chrome_options)
 delay = 3
 
 def scrape(source, filename):
-    """Reads headlines and links of articles to a text file.
-
-    Takes a search query string for Florida man articles and finds the headlines
-    and corresponding article links into a text file.
+    """Writes headlines and links of articles to a text file.
 
     Parameters
     ----------
