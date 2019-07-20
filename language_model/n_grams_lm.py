@@ -11,7 +11,7 @@ from collections import defaultdict
 directory = "training_data/"
 
 # specify csv file name here
-filenames = ["local10_headlines.csv", "floridaman_com_headlines.csv", "cbs_miami_headlines.csv"]
+filenames = ["local10_headlines.csv", "floridaman_com_headlines.csv", "cbs_miami_headlines.csv", "user_headlines.csv"]
 
 # specify what value of n to use here
 n = 2
@@ -173,8 +173,8 @@ def is_valid_headline(headline, entries):
     """Checks that headline is valid.
 
     Checks that headline is not identical to any headline in the training data,
-    that the headline is longer than 4 words, and that 'florida man' is in the
-    headline.
+    that the headline is between 5 and 20 words, and that 'florida man' is in
+    the headline.
 
     Parameters
     ----------
@@ -184,7 +184,8 @@ def is_valid_headline(headline, entries):
         A DataFrame containing all headline entries.
     """
     return headline not in list(entries["title"])\
-        and len(headline.split()) > 4\
+        and len(headline.split()) > 5\
+        and len(headline.split()) < 20\
         and "florida man" in headline
 
 """
@@ -220,8 +221,7 @@ def get_seed():
         np.random.seed(seed)
         print("Done! Random seed is {}.".format(seed))
     except:
-        print("No seed selected.")
-        return
+        print("No seed specified.")
 
 def change_n(headline_aggregate, entries):
     """Changes the value of n. Returns the newly trained headline_aggregate.
@@ -243,7 +243,7 @@ def change_n(headline_aggregate, entries):
             user_n = input("Enter a new value for n: ")
     n = user_n
     print("Done! n is now {}.".format(n))
-    return generate_grams(entries)
+    return (generate_grams(entries), entries)
 
 def print_headlines(headline_aggregate, entries):
     """Prints headlines based on user's prompt.
@@ -268,22 +268,52 @@ def print_headlines(headline_aggregate, entries):
     print()
     successfully_generated_count = 0
     consecutive_invalid_count = 0
-    already_generated = set()
+    already_generated = []
     while (successfully_generated_count < headline_count):
         headline = generate_headline(headline_aggregate)
         if is_valid_headline(headline, entries) and headline not in already_generated:
-            already_generated.add(headline)
+            already_generated.append(headline)
             successfully_generated_count += 1
             consecutive_invalid_count = 0
             print("{0}. {1}".format(successfully_generated_count, headline))
         elif consecutive_invalid_count >= consecutive_invalid_limit:
             print("\nFailed to construct headline after {} attempts. Try decreasing n or adding more training data.".format(consecutive_invalid_count))
-            return
+            break
         else:
             consecutive_invalid_count += 1
+    print()
+    save_text(already_generated)
 
-def get_input(headline_aggregate, entries):
-    """Collects user input and executes the corresponding function.
+def save_text(content):
+    """Saves content to a .txt file.
+
+    Parameters
+    ----------
+    content: list
+        A list of strings, where each item will be written to a separate line.
+    """
+    save_check = input("Do you want to save results to a text file? [y/n] ").lower().strip()
+    if save_check == "yes" or save_check == "y":
+        invalid_chars = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", " "]
+        filename = input("Please enter a valid file name: ").lower().strip()
+        is_valid_fname = lambda fname: sum([c in fname for c in invalid_chars]) == 0
+        while not is_valid_fname(filename):
+            print(is_valid_fname(filename))
+            print("\nFile name cannot contain the following characters: {0}".format(invalid_chars))
+            filename = input("Please enter a valid file name: ").lower().strip()
+        if filename[-4:] != ".txt":
+            filename += ".txt"
+        print("Writing generated headlines to {0}...".format(filename))
+        f = open(filename, "w")
+        f.writelines([line + "\n" for line in content])
+        f.close()
+        print("Completed writing headlines.")
+
+
+def add_headline(headline_aggregate, entries):
+    """Allows user to add custom headlines in separate .csv file.
+
+    Returns updated headline_aggregate and entries.
 
     Parameters
     ----------
@@ -292,16 +322,81 @@ def get_input(headline_aggregate, entries):
     entries: DataFrame
         A DataFrame containing all headline entries.
     """
-    implemented = {"n" : change_n,\
+    user_headlines = pd.read_csv("training_data/user_headlines.csv")
+    print("All user added 'Florida Man' headlines will be saved to user_headlines.csv.")
+    print("user_headlines.csv currently contains {0} entries.\n".format(len(user_headlines.index)))
+    user_headline = input("Please enter a valid headline (Q to quit). ").lower().strip()
+    while user_headline != "q":
+        if user_headline in user_headlines["title"]:
+            print("\nHeadline '{0}' already contained in user_headlines.csv.".format(user_headline))
+            print("User suggested headline '{0}' was not added to entries.\n".format(user_headline))
+        elif not is_valid_headline(user_headline, entries):
+            print("\nValid headlines must be between {0} and {1} words and contains the phrase 'Florida Man'.".format(5, 20))
+            print("User suggested headline '{0}' was not added to entries.\n".format(user_headline))
+        else:
+            print("User suggested headline '{0}' successfully added.\n".format(user_headline))
+            user_headline = pd.DataFrame({
+                "title" : [user_headline],
+                "link" : ["~"]
+            })
+            user_headlines = user_headlines.append(user_headline, ignore_index=True)
+        user_headline = input("Please enter a valid headline (Q to quit). ").lower().strip()
+    user_headlines.to_csv("training_data/user_headlines.csv", index=False)
+    entries = load_files(filenames)
+    headline_aggregate = generate_grams(entries)
+    print("\nuser_headlines.csv currently contains {0} entries.".format(len(user_headlines.index)))
+    return (headline_aggregate, entries)
+
+def clear_headlines(headline_aggregate, entries):
+    """Clears all headlines in user_headlines.csv
+
+    Parameters
+    ----------
+    headline_aggregate: dictionary
+        A dictionary of histories and corresponding frequencies for following words.
+    entries: DataFrame
+        A DataFrame containing all headline entries.
+    """
+    print()
+    response = input("Are you sure you want to clear all entries in user_headlines.csv? [y/n] ").lower().strip()
+    if response == "yes" or response == "y":
+        cleared = pd.DataFrame(columns=["title", "link"])
+        cleared.to_csv("training_data/user_headlines.csv", index=True)
+        entries = load_files(filenames)
+        headline_aggregate = generate_grams(entries)
+        print("Cleared all headlines in user_headlines.csv.")
+        return (headline_aggregate, entries)
+    else:
+        print("Cleared no headlines from user_headlines.csv.")
+
+def get_input(headline_aggregate, entries):
+    """Collects user input and executes the corresponding function.
+
+    Returns either None or headline_aggregate in the case that headline_aggregate
+    is modified.
+
+    Parameters
+    ----------
+    headline_aggregate: dictionary
+        A dictionary of histories and corresponding frequencies for following words.
+    entries: DataFrame
+        A DataFrame containing all headline entries.
+    """
+    implemented = {
+        "n" : change_n,\
         "g" : print_headlines,\
         "q" : exit,\
+        "a" : add_headline,\
+        "c" : clear_headlines,\
         "exit" : exit,\
         "exit()" : exit}
     print("\nPlease enter one of the following commands.")
     print(
     """
-    (N) Change the value of n and retrain model (n is currently {0})
+    (A) Add custom headline and retrain model
+    (C) Clear all custom headlines and retrain model
     (G) Generate and print headlines
+    (N) Change the value of n and retrain model (n is currently {0})
     (Q) Quit
     """.format(n)
     )
@@ -311,8 +406,9 @@ def get_input(headline_aggregate, entries):
         print("\nPlease enter a valid command.")
         print(
         """
-        (N) Change the value of n and retrain model (n is currently: {0})
+        (A) Add custom headline
         (G) Generate and print headlines
+        (N) Change the value of n and retrain model (n is currently: {0})
         (Q) Quit
         """.format(n)
         )
@@ -335,7 +431,7 @@ def user_prompts():
     greeting()
     get_seed()
     while(True):
-        headline_aggregate = get_input(headline_aggregate, entries) or headline_aggregate
+        headline_aggregate, entries = get_input(headline_aggregate, entries) or (headline_aggregate, entries)
 
 if __name__ == "__main__":
     user_prompts()
