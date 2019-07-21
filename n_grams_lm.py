@@ -1,5 +1,6 @@
 """
 Takes headlines from specified csv files and generates new headlines using n-grams model.
+Has user interaction by running main.
 """
 
 import numpy as np
@@ -7,8 +8,11 @@ import pandas as pd
 from collections import Counter
 from collections import defaultdict
 
-# specify training directory here
-directory = "training_data/"
+# specify training training_directory here
+training_directory = "scrapers/training_data/"
+
+# specify save directory here
+save_directory = "saved_headlines/"
 
 # specify csv file name here
 filenames = ["local10_headlines.csv", "floridaman_com_headlines.csv", "cbs_miami_headlines.csv", "user_headlines.csv"]
@@ -30,7 +34,7 @@ def load_files(filenames):
     """
     df = pd.DataFrame(columns=["title", "link"])
     for filename in filenames:
-        df = df.append(pd.read_csv(directory + filename), ignore_index=True, sort=False)
+        df = df.append(pd.read_csv(training_directory + filename), ignore_index=True, sort=False)
     df = df.drop_duplicates()
     df["title"] = [clean_headline(headline) for headline in df["title"]]
     return df
@@ -307,6 +311,7 @@ def save_text(content):
             filename = input("Please enter a valid file name: ").lower().strip()
         if filename[-4:] != ".txt":
             filename += ".txt"
+        filename = save_directory + filename
         print("Writing generated headlines to {0}...".format(filename))
         f = open(filename, "w")
         f.writelines([line + "\n" for line in content])
@@ -325,7 +330,7 @@ def add_headline(headline_aggregate, entries):
     entries: DataFrame
         A DataFrame containing all headline entries.
     """
-    user_headlines = pd.read_csv(directory + "user_headlines.csv")
+    user_headlines = pd.read_csv(training_directory + "user_headlines.csv")
     print("All user added 'Florida Man' headlines will be saved to user_headlines.csv.")
     print("user_headlines.csv currently contains {0} entries.\n".format(len(user_headlines.index)))
     user_headline = input("Please enter a valid headline (Q to quit). ").lower().strip()
@@ -344,7 +349,7 @@ def add_headline(headline_aggregate, entries):
             })
             user_headlines = user_headlines.append(user_headline, ignore_index=True)
         user_headline = input("Please enter a valid headline (Q to quit). ").lower().strip()
-    user_headlines.to_csv(directory + "user_headlines.csv", index=False)
+    user_headlines.to_csv(training_directory + "user_headlines.csv", index=False)
     entries = load_files(filenames)
     headline_aggregate = generate_grams(entries)
     print("\nuser_headlines.csv currently contains {0} entries.".format(len(user_headlines.index)))
@@ -364,7 +369,7 @@ def clear_headlines(headline_aggregate, entries):
     response = input("Are you sure you want to clear all entries in user_headlines.csv? [y/n] ").lower().strip()
     if response == "yes" or response == "y":
         cleared = pd.DataFrame(columns=["title", "link"])
-        cleared.to_csv(directory + "user_headlines.csv", index=True)
+        cleared.to_csv(training_directory + "user_headlines.csv", index=True)
         entries = load_files(filenames)
         headline_aggregate = generate_grams(entries)
         print("Cleared all headlines in user_headlines.csv.")
@@ -399,10 +404,10 @@ def inspect_data(headline_aggregate, entries):
         print(inspect_prompt)
         user_input = input().lower().strip()
         if user_input == "a":
-            print("\nMake sure that the .csv file you want to add is already in {0}.".format(directory))
+            print("\nMake sure that the .csv file you want to add is already in {0}.".format(training_directory))
             filename = input("What is the name of the .csv file to add? ")
             try:
-                df = pd.read_csv(directory + filename)
+                df = pd.read_csv(training_directory + filename)
                 if "title" not in list(df.columns) or "link" not in list(df.columns):
                     print("'title' and 'link' must be columns in df.columns. Unable to add invalid training data.")
                     continue
@@ -414,7 +419,7 @@ def inspect_data(headline_aggregate, entries):
                 print(data_summary(entries, filenames))
                 return (headline_aggregate, entries)
             except:
-                print("\n'{0}' not found in '{1}'. Unable to add new training data.".format(filename, directory))
+                print("\n'{0}' not found in '{1}'. Unable to add new training data.".format(filename, training_directory))
         elif user_input == "d":
             print("\nWe are currently using the following .csv files: {0}".format(filenames))
             filename = input("What is the name of the .csv file to drop? ")
@@ -442,7 +447,7 @@ def inspect_data(headline_aggregate, entries):
                 continue
             else:
                 print()
-                df = pd.read_csv(directory + filename)
+                df = pd.read_csv(training_directory + filename)
                 title_col = list(df["title"])
                 if (len(title_col) == 0):
                     print("No entries.")
