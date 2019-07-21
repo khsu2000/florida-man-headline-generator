@@ -192,20 +192,22 @@ def is_valid_headline(headline, entries):
 User interaction
 """
 
-def greeting():
+def greeting(entries):
     """Prints out the greeting message.
 
     Parameters
     ----------
-    none
+    entries: DataFrame
+        A DataFrame containing all headline entries.
     """
     # Greeting prompt
+    filenames.sort()
     print(
     """
-    Hello! This program uses a n-grams language model to generate 'Florida Man'
-    headlines. Currently, we are using the following .csv files as training
-    data for our model: {0}
-    """.format(filenames)
+    Hello! This program uses a n-grams language model to generate 'Florida Man' headlines.
+    Currently, we have {0} total headlines scraped from various news sources and are using the following .csv files as training
+    data for our model: {1}
+    """.format(len(entries.index), filenames)
     )
 
 def get_seed():
@@ -238,6 +240,8 @@ def change_n(headline_aggregate, entries):
     while type(user_n) != int:
         try:
             user_n = int(user_n)
+            if user_n < 1:
+                raise Exception("n is nonpositive.")
         except:
             print("\nPlease enter a positive integer.")
             user_n = input("Enter a new value for n: ")
@@ -292,7 +296,7 @@ def save_text(content):
     content: list
         A list of strings, where each item will be written to a separate line.
     """
-    save_check = input("Do you want to save results to a text file? [y/n] ").lower().strip()
+    save_check = input("Do you want to save headlines to a text file? [y/n] ").lower().strip()
     if save_check == "yes" or save_check == "y":
         invalid_chars = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", " "]
         filename = input("Please enter a valid file name: ").lower().strip()
@@ -309,7 +313,6 @@ def save_text(content):
         f.close()
         print("Completed writing headlines.")
 
-
 def add_headline(headline_aggregate, entries):
     """Allows user to add custom headlines in separate .csv file.
 
@@ -322,7 +325,7 @@ def add_headline(headline_aggregate, entries):
     entries: DataFrame
         A DataFrame containing all headline entries.
     """
-    user_headlines = pd.read_csv("training_data/user_headlines.csv")
+    user_headlines = pd.read_csv(directory + "user_headlines.csv")
     print("All user added 'Florida Man' headlines will be saved to user_headlines.csv.")
     print("user_headlines.csv currently contains {0} entries.\n".format(len(user_headlines.index)))
     user_headline = input("Please enter a valid headline (Q to quit). ").lower().strip()
@@ -331,7 +334,7 @@ def add_headline(headline_aggregate, entries):
             print("\nHeadline '{0}' already contained in user_headlines.csv.".format(user_headline))
             print("User suggested headline '{0}' was not added to entries.\n".format(user_headline))
         elif not is_valid_headline(user_headline, entries):
-            print("\nValid headlines must be between {0} and {1} words and contains the phrase 'Florida Man'.".format(5, 20))
+            print("\nValid headlines must be between {0} and {1} words and contain the phrase 'Florida Man'.".format(5, 20))
             print("User suggested headline '{0}' was not added to entries.\n".format(user_headline))
         else:
             print("User suggested headline '{0}' successfully added.\n".format(user_headline))
@@ -341,7 +344,7 @@ def add_headline(headline_aggregate, entries):
             })
             user_headlines = user_headlines.append(user_headline, ignore_index=True)
         user_headline = input("Please enter a valid headline (Q to quit). ").lower().strip()
-    user_headlines.to_csv("training_data/user_headlines.csv", index=False)
+    user_headlines.to_csv(directory + "user_headlines.csv", index=False)
     entries = load_files(filenames)
     headline_aggregate = generate_grams(entries)
     print("\nuser_headlines.csv currently contains {0} entries.".format(len(user_headlines.index)))
@@ -361,13 +364,110 @@ def clear_headlines(headline_aggregate, entries):
     response = input("Are you sure you want to clear all entries in user_headlines.csv? [y/n] ").lower().strip()
     if response == "yes" or response == "y":
         cleared = pd.DataFrame(columns=["title", "link"])
-        cleared.to_csv("training_data/user_headlines.csv", index=True)
+        cleared.to_csv(directory + "user_headlines.csv", index=True)
         entries = load_files(filenames)
         headline_aggregate = generate_grams(entries)
         print("Cleared all headlines in user_headlines.csv.")
         return (headline_aggregate, entries)
     else:
         print("Cleared no headlines from user_headlines.csv.")
+
+def inspect_data(headline_aggregate, entries):
+    """Allows user to inspect each .csv file and drop/add .csv files as well.
+
+    Parameters
+    ----------
+    headline_aggregate: dictionary
+        A dictionary of histories and corresponding frequencies for following words.
+    entries: DataFrame
+        A DataFrame containing all headline entries.
+    """
+    global filenames
+    filenames.sort()
+    data_summary = lambda entries, filenames: "Our training data currently includes {0} entries from the following .csv files: {1}".format(len(entries.index), filenames)
+    print(data_summary(entries, filenames))
+    inspect_prompt = \
+    """
+    (A) Add training data
+    (D) Drop training data
+    (I) Inspect training data
+    (Q) Quit
+    """
+    user_input = ""
+    while True:
+        print("\nPlease enter one of the following commands.")
+        print(inspect_prompt)
+        user_input = input().lower().strip()
+        if user_input == "a":
+            print("\nMake sure that the .csv file you want to add is already in {0}.".format(directory))
+            filename = input("What is the name of the .csv file to add? ")
+            try:
+                df = pd.read_csv(directory + filename)
+                if "title" not in list(df.columns) or "link" not in list(df.columns):
+                    print("'title' and 'link' must be columns in df.columns. Unable to add invalid training data.")
+                    continue
+                filenames.append(filename)
+                entries = load_files(filenames)
+                headline_aggregate = generate_grams(entries)
+                filenames.sort()
+                print("\nSuccessfully added '{0}' to training data.".format(filename))
+                print(data_summary(entries, filenames))
+                return (headline_aggregate, entries)
+            except:
+                print("\n'{0}' not found in '{1}'. Unable to add new training data.".format(filename, directory))
+        elif user_input == "d":
+            print("\nWe are currently using the following .csv files: {0}".format(filenames))
+            filename = input("What is the name of the .csv file to drop? ")
+            if filename not in filenames:
+                print("\n'{0}' not in {1}. Unable to drop '{0}'.".format(filename, filenames))
+                continue
+            else:
+                filenames.remove(filename)
+                entries = load_files(filenames)
+                if len(entries.index) == 0:
+                    print("\nCannot remove all training data.")
+                    filenames.append(filename)
+                    filenames.sort()
+                    print(data_summary(entries, filenames))
+                    continue
+                headline_aggregate = generate_grams(entries)
+                print("\nSuccessfully removed {0} from training data.".format(filename))
+                print(data_summary(entries, filenames))
+                return (headline_aggregate, entries)
+        elif user_input == "i":
+            print("\nWe are currently using the following .csv files: {0}".format(filenames))
+            filename = input("What is the name of the .csv file to inspect? ")
+            if filename not in filenames:
+                print("\n'{0}' not in {1}. Unable to inspect data.".format(filename, filenames))
+                continue
+            else:
+                print()
+                df = pd.read_csv(directory + filename)
+                title_col = list(df["title"])
+                if (len(title_col) == 0):
+                    print("No entries.")
+                else:
+                    links_col = list(df["link"])
+                    for i in range(len(title_col)):
+                        print(i + 1)
+                        print(" " * 4 + title_col[i])
+                        print(" " * 4 + links_col[i])
+        elif user_input == "q":
+            return
+        else:
+            print("Please select one of the specified options.")
+
+def guessing_quiz(headline_aggregate, entries):
+    """A quiz game where users guess if a headline was generated or genuine.
+
+    Parameters
+    ----------
+    headline_aggregate: dictionary
+        A dictionary of histories and corresponding frequencies for following words.
+    entries: DataFrame
+        A DataFrame containing all headline entries.
+    """
+    return
 
 def get_input(headline_aggregate, entries):
     """Collects user input and executes the corresponding function.
@@ -388,31 +488,27 @@ def get_input(headline_aggregate, entries):
         "q" : exit,\
         "a" : add_headline,\
         "c" : clear_headlines,\
+        "d" : inspect_data,\
+        "p" : guessing_quiz,\
         "exit" : exit,\
         "exit()" : exit}
-    print("\nPlease enter one of the following commands.")
-    print(
+    implemented_prompt = \
     """
     (A) Add custom headline and retrain model
     (C) Clear all custom headlines and retrain model
+    (D) Inspect or drop/add training data
     (G) Generate and print headlines
     (N) Change the value of n and retrain model (n is currently {0})
+    (P) Play guessing quiz
     (Q) Quit
     """.format(n)
-    )
-    user_input = input()
-    user_input = user_input.lower().strip()
+    print("\nPlease enter one of the following commands.")
+    print(implemented_prompt)
+    user_input = input().lower().strip()
     while user_input not in implemented:
         print("\nPlease enter a valid command.")
-        print(
-        """
-        (A) Add custom headline
-        (G) Generate and print headlines
-        (N) Change the value of n and retrain model (n is currently: {0})
-        (Q) Quit
-        """.format(n)
-        )
-        user_input = input()
+        print(implemented_prompt)
+        user_input = input().lower().strip()
     print()
     if implemented[user_input] == exit:
         implemented[user_input]()
@@ -428,9 +524,9 @@ def user_prompts():
     """
     entries = load_files(filenames)
     headline_aggregate = generate_grams(entries)
-    greeting()
+    greeting(entries)
     get_seed()
-    while(True):
+    while True:
         headline_aggregate, entries = get_input(headline_aggregate, entries) or (headline_aggregate, entries)
 
 if __name__ == "__main__":
