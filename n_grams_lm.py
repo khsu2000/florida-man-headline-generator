@@ -1,6 +1,7 @@
 """
-Takes headlines from specified csv files and generates new headlines using n-grams model.
-Has user interaction by running main.
+Takes headlines data found in the .csv files in training_data/.
+Uses a n-grams language model to generate from training data.
+Allows user to perform various actions like inspecting the data or playing a guessing game.
 """
 
 import numpy as np
@@ -25,7 +26,7 @@ Generating headlines
 """
 
 def load_files(filenames):
-    """Takes a list of file names for .csv files and returns a DataFrame.
+    """Takes a list of file names for .csv files and returns a DataFrame with all entries combined.
 
     Parameters
     ----------
@@ -42,7 +43,8 @@ def load_files(filenames):
 def clean_headline(headline):
     """Cleans the headline.
 
-    For now, all this function does is change headline to lowercase.
+    For now, all this function does is change headline to lowercase and remove
+    any surrounding whitespace.
 
     Parameters
     ----------
@@ -215,7 +217,7 @@ def greeting(entries):
     )
 
 def get_seed():
-    """Sees if user wants to enter a seed to fix headline generation.
+    """Sees if user wants to enter a seed to fix numpy randomness.
 
     Parameters
     ----------
@@ -256,6 +258,10 @@ def change_n(headline_aggregate, entries):
 def print_headlines(headline_aggregate, entries):
     """Prints headlines based on user's prompt.
 
+    Prompts user to see if headlines should be saved to a text file at the end.
+    Additionally, if print_headlines fails to generate a headline after too many
+    attempts, print_headlines will automatically stop.
+
     Parameters
     ----------
     headline_aggregate: dictionary
@@ -295,6 +301,9 @@ def print_headlines(headline_aggregate, entries):
 def save_text(content):
     """Saves content to a .txt file.
 
+    Also prompts user, asking if the user wants to save the content first and
+    the filename.
+
     Parameters
     ----------
     content: list
@@ -321,7 +330,8 @@ def save_text(content):
 def add_headline(headline_aggregate, entries):
     """Allows user to add custom headlines in separate .csv file.
 
-    Returns updated headline_aggregate and entries.
+    Returns updated headline_aggregate and entries. All user added headlines are
+    saved inside user_headlines.csv.
 
     Parameters
     ----------
@@ -378,6 +388,10 @@ def clear_headlines(headline_aggregate, entries):
 
 def inspect_data(headline_aggregate, entries):
     """Allows user to inspect each .csv file and drop/add .csv files as well.
+
+    Will return updated headline_aggregate and entries if any .csv files are
+    added or dropped. Additionally, this process mutates global variable
+    filenames.
 
     Parameters
     ----------
@@ -506,7 +520,7 @@ def guessing_quiz(headline_aggregate, entries):
             user_guess = input().lower().strip()
         if user_guess == "q":
             print("\nThe correct answer for '{0}' was {1}.".format(headline, string_display(real)))
-            print("For the ones you've attempted to answer, you've scored {0} correctly out of {1} total headlines or {2}%."\
+            print("For the ones you answered, you classified {2}% of the headlines correctly, or {0} out of {1} headlines."\
                 .format(correct_count, len(already_guessed), round(100* correct_count / len(already_guessed), 2)))
             return
         else:
