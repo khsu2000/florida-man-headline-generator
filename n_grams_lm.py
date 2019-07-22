@@ -559,11 +559,11 @@ def get_input(headline_aggregate, entries):
         "exit()" : exit}
     implemented_prompt = \
     """
-    (A) Add custom headline and retrain model
-    (C) Clear all custom headlines and retrain model
+    (A) Add custom headline
+    (C) Clear all custom headlines
     (D) Inspect or drop/add training data
     (G) Generate and print headlines
-    (N) Change the value of n and retrain model (n is currently {0})
+    (N) Change the value of n (n is currently {0})
     (P) Play guessing quiz
     (Q) Quit
     """.format(n)
