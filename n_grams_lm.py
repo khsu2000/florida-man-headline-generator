@@ -49,7 +49,7 @@ def clean_headline(headline):
     headline: str
         A headline to clean.
     """
-    return headline.lower()
+    return headline.lower().strip()
 
 def single_headline_grams(headline):
     """Generates grams for a single headline.
@@ -335,7 +335,7 @@ def add_headline(headline_aggregate, entries):
     print("user_headlines.csv currently contains {0} entries.\n".format(len(user_headlines.index)))
     user_headline = input("Please enter a valid headline (Q to quit). ").lower().strip()
     while user_headline != "q":
-        if user_headline in user_headlines["title"]:
+        if user_headline in list(user_headlines["title"]):
             print("\nHeadline '{0}' already contained in user_headlines.csv.".format(user_headline))
             print("User suggested headline '{0}' was not added to entries.\n".format(user_headline))
         elif not is_valid_headline(user_headline, entries):
@@ -347,7 +347,7 @@ def add_headline(headline_aggregate, entries):
                 "title" : [user_headline],
                 "link" : ["~"]
             })
-            user_headlines = user_headlines.append(user_headline, ignore_index=True)
+            user_headlines = user_headlines.append(user_headline, ignore_index=True, sort=True)
         user_headline = input("Please enter a valid headline (Q to quit). ").lower().strip()
     user_headlines.to_csv(training_directory + "user_headlines.csv", index=False)
     entries = load_files(filenames)
@@ -365,7 +365,6 @@ def clear_headlines(headline_aggregate, entries):
     entries: DataFrame
         A DataFrame containing all headline entries.
     """
-    print()
     response = input("Are you sure you want to clear all entries in user_headlines.csv? [y/n] ").lower().strip()
     if response == "yes" or response == "y":
         cleared = pd.DataFrame(columns=["title", "link"])
@@ -396,7 +395,7 @@ def inspect_data(headline_aggregate, entries):
     (A) Add training data
     (D) Drop training data
     (I) Inspect training data
-    (Q) Quit
+    (Q) Quit (Exits to main menu)
     """
     user_input = ""
     while True:
@@ -472,7 +471,53 @@ def guessing_quiz(headline_aggregate, entries):
     entries: DataFrame
         A DataFrame containing all headline entries.
     """
-    return
+    game_prompts = \
+    """
+    (T) Guess that a headline is genuine.
+    (F) Guess that a headline is fake.
+    (Q) Quit (Ends game and exits to main menu)
+    """
+    already_guessed = []
+    real_headlines = entries.loc[entries["link"] != "~"]
+    print("Welcome to the guessing game! The objective of this game is to guess if a headline is generated or genuine.")
+    print("Note: We will not consider user added headlines as real headlines.")
+    string_display = lambda real: "genuine" if real else "generated"
+    correct_count = 0
+    while True:
+        # Getting headline for quiz
+        headline = ""
+        while headline in already_guessed or headline == "":
+            if np.random.uniform() < 0.5:
+                real = False
+                headline = generate_headline(headline_aggregate)
+            else:
+                real = True
+                headline = np.random.choice(list(real_headlines["title"]))
+        already_guessed.append(headline)
+        print("\nIs this headline generated or genuine?")
+        print(" " * 4 + headline)
+        print("\nPick one of the following options:")
+        print(game_prompts)
+
+        # Getting user response and evaluating results
+        user_guess = input().lower().strip()
+        while user_guess not in ["q", "t", "f"]:
+            print("\nPlease enter a valid command.")
+            user_guess = input().lower().strip()
+        if user_guess == "q":
+            print("\nThe correct answer for '{0}' was {1}.".format(headline, string_display(real)))
+            print("For the ones you've attempted to answer, you've scored {0} correctly out of {1} total headlines or {2}%.".format(correct_count, len(already_guessed), correct_count / len(already_guessed)))
+            return
+        else:
+            user_guess = user_guess == "t"
+            if user_guess == real:
+                correct_count += 1
+                print("\nCorrect! The headline '{0}' was {1}.".format(headline, string_display(real)))
+            else:
+                print("\nIncorrect. The headline '{0}' was {1}.".format(headline, string_display(real)))
+            if real:
+                link = list(real_headlines.loc[real_headlines["title"] == headline]["link"])[0]
+                print("The link for this news article is here: {0}".format(link))
 
 def get_input(headline_aggregate, entries):
     """Collects user input and executes the corresponding function.
