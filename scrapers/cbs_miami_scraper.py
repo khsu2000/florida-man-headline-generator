@@ -1,6 +1,6 @@
 """
 Scrapes miami.cbslocal.com for links related to Florida man.
-Stores results in cbsmiami_headlines.csv.
+Stores results in training_data/cbsmiami_headlines.csv.
 """
 
 import pandas as pd
@@ -20,7 +20,7 @@ filename = "training_data/cbs_miami_headlines.csv"
 chrome_options = Options()
 
 # Set to true to hide browser
-chrome_options.headless = False
+chrome_options.headless = True
 driver = webdriver.Chrome("./chromedriver_win32/chromedriver.exe", options=chrome_options)
 delay = 3
 
@@ -62,10 +62,7 @@ def scrape(source, filename):
     write_to_csv(entries, filename)
 
 def write_to_csv(content, filename):
-    """Writes list to file specified by filename.
-
-    If the file already exists, it will append to the end of the file. Otherwise
-    creates a new file. Writes a newline for every string.
+    """Writes list to a .csv file specified by filename.
 
     Parameters
     ----------

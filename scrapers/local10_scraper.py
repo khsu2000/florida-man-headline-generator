@@ -1,6 +1,6 @@
 '''
 Scrapes local10.com for links related to Florida man.
-Stores results in headlines.csv.
+Stores results in training_data/local10_headlines.csv.
 '''
 
 import pandas as pd
@@ -17,7 +17,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 source = "https://www.local10.com/search?searchTerm=florida+man"
 
 # Specify filename here where data is being stored
-filename = "training_data/local10_headlines2.csv"
+filename = "training_data/local10_headlines.csv"
 
 # Specify how many times to click 'next page' to load more results
 load_limit = 200
@@ -80,10 +80,7 @@ def scrape(source, filename):
             return
 
 def write_to_csv(content, filename):
-    """Writes list to file specified by filename.
-
-    If the file already exists, it will append to the end of the file. Otherwise
-    creates a new file. Writes a newline for every string.
+    """Writes list to .csv file specified by filename.
 
     Parameters
     ----------

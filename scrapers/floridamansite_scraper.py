@@ -1,6 +1,6 @@
 '''
 Scrapes floridaman.com for links related to Florida man.
-Stores results in floridaman_com_headlines.csv.
+Stores results in training_data/floridaman_com_headlines.csv.
 '''
 
 import pandas as pd
@@ -16,7 +16,7 @@ source = "https://floridaman.com/"
 filename = "training_data/floridaman_com_headlines.csv"
 
 # Specify how many times to click 'next page' to load more results
-load_limit = 100
+load_limit = 14
 
 # Creates the chrome driver
 chrome_options = Options()
@@ -28,7 +28,7 @@ driver = webdriver.Chrome("./chromedriver_win32/chromedriver.exe", options=chrom
 delay = 3
 
 def scrape(source, filename):
-    """Writes headlines and links of articles to a text file.
+    """Writes headlines and links of articles to a .csv file.
 
     Parameters
     ----------
@@ -61,10 +61,7 @@ def scrape(source, filename):
     write_to_csv(entries, filename)
 
 def write_to_csv(content, filename):
-    """Writes list to file specified by filename.
-
-    If the file already exists, it will append to the end of the file. Otherwise
-    creates a new file. Writes a newline for every string.
+    """Writes list to .csv file specified by filename.
 
     Parameters
     ----------
@@ -88,20 +85,6 @@ def is_florida_man_article(link):
         A string of the href an <a> element contains
     """
     return "https://floridaman.com/" in link
-
-def undoMisclick():
-    """Checks if URL is local10 news; if URL is not local10 news, stops scraper.
-
-    Parameters
-    ----------
-    None
-    """
-    global load_limit
-
-    if driver.current_url != source:
-        print("\nAccidentally navigated to a wrong location; stopping scraper.")
-        print("Navigated to: {}".format(driver.current_url))
-        raise Exception("Navigated to invalid URL.")
 
 if __name__ == "__main__":
     scrape(source, filename)
