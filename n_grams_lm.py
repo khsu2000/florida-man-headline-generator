@@ -506,7 +506,8 @@ def guessing_quiz(headline_aggregate, entries):
             user_guess = input().lower().strip()
         if user_guess == "q":
             print("\nThe correct answer for '{0}' was {1}.".format(headline, string_display(real)))
-            print("For the ones you've attempted to answer, you've scored {0} correctly out of {1} total headlines or {2}%.".format(correct_count, len(already_guessed), correct_count / len(already_guessed)))
+            print("For the ones you've attempted to answer, you've scored {0} correctly out of {1} total headlines or {2}%."\
+                .format(correct_count, len(already_guessed), round(100* correct_count / len(already_guessed), 2)))
             return
         else:
             user_guess = user_guess == "t"
