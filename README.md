@@ -3,6 +3,24 @@ This is my first personal project! I took this on during the summer after my fre
 
 This is a "Florida Man" headline generator. It uses headlines scraped from various news sources as training data for a n-grams language model. By running n_grams_lm.py, a user opens up an interactive mode with options like adding custom training headlines, generating headlines in bulk, or playing a guessing quiz. 
 
+## Overview 
+There are two main components to this project: 
+* scrapers (python files in /scrapers)
+* the interactive program (n_grams_lm.py)
+
+Each source has its own scraper. The scrapers use Selenium python and BeautifulSoup to extract Florida Man articles from three sources: Local 10 news, CBS Miami, and a dedicated Florida Man website. They use pandas dataframes to keep track of news headlines and corresponding article links before saving the data to .csv files. 
+
+The interactive program itself can be broken down into headline generation and user interaction. The program first starts by initially training the language model with the data from the included scrapers and a default value of n=2 (it can also take in a random seed from the user before this). It then internally tracks the language model (stored as a dictionary) and the training data used (stored as a pandas dataframe). After the initial training, the program enters a loop where it takes commands from the user. 
+
+The full list of commands are as follows: 
+* Change the value of n and retrain the model 
+* Generate a batch of headlines (with the option to save to .txt file) 
+* Add a custom headline to the training data and retrain the model 
+* Clear all custom user headlines 
+* Inspect what .csv files are included in the training data (this option includes the abilities to add other .csv files or remove .csv files from the training data) 
+* Play a guessing game where the user has to guess if a headline is generated or genuine. 
+
+
 ## Prerequisites 
 To just run n_grams_lm.py, you need numpy and pandas. However, it does need access to the training data, which is contained inside scrapers/training_data/. Make sure that scrapers/training_data/ stays in the same directory as n_grams_lm.py. 
 
