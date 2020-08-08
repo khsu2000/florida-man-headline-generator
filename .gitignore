@@ -1,0 +1,5 @@
+*.swp
+*.swo
+*~
+debug.log
+chromedriver_win32

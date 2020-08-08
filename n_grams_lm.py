@@ -25,20 +25,6 @@ n = 2
 Generating headlines
 """
 
-def load_files(filenames):
-    """Takes a list of file names for .csv files and returns a DataFrame with all entries combined.
-
-    Parameters
-    ----------
-    filenames: list of strings
-        A list of strings containing the names of .csv files for headline data.
-    """
-    df = pd.DataFrame(columns=["title", "link"])
-    for filename in filenames:
-        df = df.append(pd.read_csv(training_directory + filename), ignore_index=True, sort=False)
-    df = df.drop_duplicates()
-    df["title"] = [clean_headline(headline) for headline in df["title"]]
-    return df
 
 def clean_headline(headline):
     """Cleans the headline.
