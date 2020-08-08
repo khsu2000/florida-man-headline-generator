@@ -9,20 +9,21 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time 
 import traceback
 import utils
 
 data_directory = "training_data/"
-driver = webdriver.Chrome("chromedriver_win32/chromedriver.exe")
+driver_path = "chromedriver_win32/chromedriver.exe"
 
-def scrape_floridaman_site(filename):
+def scrape_floridaman_site(driver, filename):
     """Scrapes https://floridaman.com/ for Florida man headlines. Saves headlines to filename.
 
     Parameters
     ----------
     filename: string
         The name of the file the articles are being written into.
+    driver: Selenium webdriver 
+        Webdriver for Selenium to use.
     """
     driver.get("https://floridaman.com/")
     verify_article = lambda link: "https://floridaman.com" in link
@@ -47,13 +48,15 @@ def scrape_floridaman_site(filename):
     driver.quit()
     utils.write_to_csv(entries, filename)
 
-def scrape_cbs_miami(filename):
+def scrape_cbs_miami(driver, filename):
     """Scrapes CBS Miami for Florida man headlines. Saves headlines to filename.
 
     Parameters
     ----------
     filename: string
         The name of the file the articles are being written into.
+    driver: Selenium webdriver 
+        Webdriver for Selenium to use.
     """
     driver.get("https://miami.cbslocal.com/search/?q=florida+man")
     entries = pd.DataFrame(columns=["title", "link"])
@@ -69,7 +72,7 @@ def scrape_cbs_miami(filename):
             for headline in headlines:
                 headline_link = headline["href"]
                 link_soup = BeautifulSoup(requests.get(headline_link, allow_redirects=False).text, "html5lib")
-                headline_title = link_soup.find("h1", {"class" : "title"}).text
+                headline_title = link_soup.find("h1", {"class" : "title"}).text.strip()
                 entry = pd.DataFrame({
                     "title" : [headline_title],
                     "link" : [headline_link]
@@ -81,19 +84,20 @@ def scrape_cbs_miami(filename):
     driver.quit()
     utils.write_to_csv(entries, filename)
 
-def scrape_local10(filename):
+def scrape_local10(driver, filename):
     """Scrapes local10 news for Florida man headlines. Saves headlines to filename.
 
     Parameters
     ----------
     filename: string
         The name of the file the articles are being written into.
+    driver: Selenium webdriver 
+        Webdriver for Selenium to use.
     """
     driver.get("https://www.local10.com/search/?searchTerm=florida+man")
     entries = pd.DataFrame(columns=["title", "link"])
     verify_article = lambda title: "florida man" in title.lower()
     number_entries = 500
-    click_attempts = 100
     
     try:
         while len(entries.index) < number_entries:
@@ -101,7 +105,7 @@ def scrape_local10(filename):
             soup = BeautifulSoup(driver.page_source, "html5lib")
             headlines = soup.find_all("div", {"class" : "queryly_item"})
             for headline in headlines: 
-                article_title = headline.find("div", {"class" : "queryly_item_title"}).decode_contents()
+                article_title = headline.find("div", {"class" : "queryly_item_title"}).decode_contents().strip()
                 article_link = headline.a["href"]
                 if verify_article(article_title):
                     entry = pd.DataFrame({
@@ -119,6 +123,11 @@ def scrape_local10(filename):
     utils.write_to_csv(entries, filename)
 
 if __name__ == "__main__":
-    scrape_floridaman_site(data_directory + "floridaman_site_headlines.csv")
-    scrape_cbs_miami(data_directory + "cbs_miami_headlines.csv")
-    scrape_local10(data_directory + "local10_headlines.csv")
+    driver = webdriver.Chrome(driver_path)
+    scrape_floridaman_site(driver, data_directory + "floridaman_site_headlines.csv")
+
+    driver = webdriver.Chrome(driver_path)
+    scrape_cbs_miami(driver, data_directory + "cbs_miami_headlines.csv")
+
+    driver = webdriver.Chrome(driver_path)
+    scrape_local10(driver, data_directory + "local10_headlines.csv")
