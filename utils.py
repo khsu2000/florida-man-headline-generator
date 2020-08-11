@@ -3,7 +3,6 @@ from os.path import isfile, join
 import pandas as pd
 import traceback
 from pprint import pprint
-import re
 
 MIN_WORDS = 5
 MAX_WORDS = 20
