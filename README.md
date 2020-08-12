@@ -1,37 +1,36 @@
 # florida-man-headline-generator
-This is my first personal project! I took this on during the summer after my freshman year at Berkeley.  
+Welcome to my first personal project! I initially took on this project during the summer after my freshman year at UC Berkeley, but refactored and rewrote nearly all of the code just before the start of my junior year. 
 
-This is a "Florida Man" headline generator. It uses headlines scraped from various news sources as training data for a n-grams language model. By running n_grams_lm.py, a user opens up an interactive mode with options like adding custom training headlines, generating headlines in bulk, or playing a guessing quiz. 
+This is a "Florida Man" headline generator. Using headlines scraped from various news sources as training data, an n-grams language model is able to generate fake headlines that sound like they could belong to real articles. To see this in action, I encourage you to clone this repository and run shell.py! From there, you're able to start a terminal program that allows you to add custom headlines to the training data, generate headlines in bulk, or play a guessing game to determine if a presented headline is generated or genuine. To check the required packages needed to run any of the files, check out requirements.txt.
 
-## Overview 
-There are two main components to this project: 
-* scrapers (python files in /scrapers)
-* the interactive program (n_grams_lm.py)
+## Project Breakdown
+There are three main components to this project: 
+1. [Web Scrapers](./scraper.py)
+2. [N-gram Language Model](./ngrams_lm.py)
+3. [Interactive Shell](./shell.py) 
 
-Each source has its own scraper. The scrapers use Selenium python and BeautifulSoup to extract Florida Man articles from three sources: Local 10 news, CBS Miami, and a dedicated Florida Man website. They use pandas dataframes to keep track of news headlines and corresponding article links before saving the data to .csv files. 
+### Web Scrapers
+I gathered the "Florida Man" headlines from three different news sources: [Local 10 News](https://www.local10.com/), [CBS Miami](https://miami.cbslocal.com/), and a [dedicated Florida Man site](https://floridaman.com/). All scrapers were built with Selenium and BeautifulSoup; Selenium allowed the scrapers to load and interact (for example, like pressing the "Next Page" buttons) with the sites while BeautifulSoup helped parse the page's actual contents. To run Selenium, a [Chrome webdriver](https://sites.google.com/a/chromium.org/chromedriver/home) was also required. I last scraped for headlines on 8/8/2020, and the ChromeDriver version I used was 84.0.4147.30.
 
-The interactive program itself can be broken down into headline generation and user interaction. The program first starts by initially training the language model with the data from the included scrapers and a default value of n=2 (it can also take in a random seed from the user before this). It then internally tracks the language model (stored as a dictionary) and the training data used (stored as a pandas dataframe). After the initial training, the program enters a loop where it takes commands from the user. 
+While all scrapers used Selenium and BeautifulSoup, each site required a unique scraper, as the sites were all built with different HTML templates. Deciding how to tackle each site to scrape their headlines required me to study each site's source and find selectors I could use to parse the information. 
 
-The full list of commands are as follows: 
+When going back to rewrite the scraper code, I realized that I had initially taken unnecessarily roundabout or even unreliable approaches to finding some webpage elements. One example of this was in my original implementation of the Local 10 news scraper; to locate the "Next Page" button, I had originally used the button's XPath. However, the button's XPath is not guaranteed to remain the same between executions, so this resulted in inconsistent behavior. Instead, my current implementation uses the button's class name, which is fixed.
+
+### N-Gram Language Model
+The N-gram language model is a predictive language model that is used for applications like producing Shakespeare-like text. The model works by splitting a text corpus into grams of fixed-length (in words) and using the grams to form a conditional probability distribution that maps a text history to possible outcomes. As an example, if the text history were "Florida man..." the language model may predict that the next word is "arrested" with 30% probability, "assaults" with 25% probability, "reported" with 10% probability, etc. The model then randomly chooses a word based on that distribution, and then updates the text history; in the case that "arrested" were chosen, the new text history would be "man arrested...", and then another word would be chosen. The value of N in the name N-gram language model is the length of each gram, or phrase. The above example is a bigram, where the text history and phrases are two words long. 
+
+My implementation of the N-gram language model takes advantage of Python's built-in defaultdict and Counter to create a density function using the scraped headlines as a text corpus. The language model code is relatively well encapsulated after refactoring, so that the interactive shell's code in shell.py only needs to call `generate_grams` to produce the distribution from the training data, and passing the distribution into `generate_headline` returns a new headline as a string. 
+
+### Interactive Shell
+The interactive shell was allows a user to interact with the language model. The full list of commands are as follows:
+* Add custom headlines to training dataset/text corpus
+* Clear all custom headlines (remove all user added headlines)
+* Add/remove files from training data, view each .csv file individually
 * Change the value of n and retrain the model 
-* Generate a batch of headlines (with the option to save to .txt file) 
-* Add a custom headline to the training data and retrain the model 
-* Clear all custom user headlines 
-* Inspect what .csv files are included in the training data (this option includes the abilities to add other .csv files or remove .csv files from the training data) 
-* Play a guessing game where the user has to guess if a headline is generated or genuine. 
+* Generate a batch of headlines, option to save them to a .txt file
+* Play guessing quiz to determine if headlines are real or generated headlines
 
-
-## Prerequisites 
-To just run n_grams_lm.py, you need numpy and pandas. However, it does need access to the training data, which is contained inside scrapers/training_data/. Make sure that scrapers/training_data/ stays in the same directory as n_grams_lm.py. 
-
-To run any of the scrapers in scrapers/, you need pandas, BeautifulSoup, and Selenium. Additionally, you need to download a selenium chromedriver. You don't need numpy to run the scrapers. 
-
-## Adding/Dropping Data 
-All training data is stored in scrapers/training_data/. Make sure that all .csv files you want the language model to use has at least the following two columns: "title" and "link". If you want to add training data, make sure you place your new .csv file in scrapers/training_data/. When dropping data, make sure that n_grams_lm.py initially has some training data to use. If there is no training data, n_grams_lm.py will error. Finally, make sure you leave user_headlines.csv in training_data/. This is used for adding custom headlines. If you don't want to use user-added headlines in the language model, you should use the interactive mode's drop data or clear custom headlines options. If you want to add or drop data, there are two ways to do so: 
-* You can add/drop data from the option listed in n_grams_lm.py's interactive mode. This will only apply changes for your current execution of n_grams_lm.py. 
-* To make permanent changes that persist between executions of n_grams_lm.py, you can edit the "filenames" variable in n_grams_lm.py. This is a list of file names that n_grams_lm.py automatically uses each time to create its language model. Just add or remove the file names that you want n_grams_lm.py to use every time it's executed. 
-
-Obviously, make sure that all .csv files you're working with are actually present in scrapers/training_data/. 
+While I added no new functionality when I refactored the code, I made sped up the runtime of multiple functions, improved the consistency of the text prompts to users, and made the code more concise. 
 
 ## Authors
 Kevin Hsu 
