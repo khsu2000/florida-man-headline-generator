@@ -3,6 +3,9 @@ numpy==1.19.1
 pandas==1.1.0
 
 # Required to run scraper.py (in addition to numpy and pandas)
+# A ChomeDriver from https://sites.google.com/a/chromium.org/chromedriver/home is also required to run scraper.py. 
+# Download and unzip the latest stable version into this directory.
+# When I scraped the sources on 8/8/2020, the version I used was 84.0.4147.30. 
 beautifulsoup4==4.9.1
 requests==2.24.0
 selenium==3.141.0
