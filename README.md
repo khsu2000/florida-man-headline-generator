@@ -14,7 +14,7 @@ I gathered the "Florida Man" headlines from three different news sources: [Local
 
 While all scrapers used Selenium and BeautifulSoup, each site required a unique scraper, as the sites were all built with different HTML templates. Deciding how to tackle each site to scrape their headlines required me to study each site's source and find selectors I could use to parse the information. 
 
-When going back to rewrite the scraper code, I realized that I had initially taken unnecessarily roundabout or even unreliable approaches to finding some webpage elements. One example of this was in my original implementation of the Local 10 news scraper; to locate the "Next Page" button, I had originally used the button's XPath. However, the button's XPath is not guaranteed to remain the same between executions, so this resulted in inconsistent behavior. Instead, my current implementation uses the button's class name, which is fixed.
+When going back to rewrite the scraper code, I realized that I had initially taken unnecessarily roundabout or even unreliable approaches to finding some webpage elements. One example of this was in my original implementation of the Local 10 news scraper; to locate the "Next Page" button, I had originally used the button's XPath. However, the button's XPath is not guaranteed to remain the same between executions, so this resulted in inconsistent behavior. Instead, my current implementation uses the button's class name, which is always fixed.
 
 ### N-Gram Language Model
 The N-gram language model is a predictive language model that is used for applications like producing Shakespeare-like text. The model works by splitting a text corpus into grams of fixed-length (in words) and using the grams to form a conditional probability distribution that maps a text history to possible outcomes. As an example, if the text history were "Florida man..." the language model may predict that the next word is "arrested" with 30% probability, "assaults" with 25% probability, "reported" with 10% probability, etc. The model then randomly chooses a word based on that distribution, and then updates the text history; in the case that "arrested" were chosen, the new text history would be "man arrested...", and then another word would be chosen. The value of N in the name N-gram language model is the length of each gram, or phrase. The above example is a bigram, where the text history and phrases are two words long. 
@@ -30,7 +30,7 @@ The interactive shell was allows a user to interact with the language model. The
 * Generate a batch of headlines, option to save them to a .txt file
 * Play guessing quiz to determine if headlines are real or generated headlines
 
-While I added no new functionality when I refactored the code, I made sped up the runtime of multiple functions, improved the consistency of the text prompts to users, and made the code more concise. 
+While I added no new functionality when I refactored the code, I sped up the runtime of multiple functions, improved the consistency of the text prompts to users, and made the code more concise. 
 
 ## Authors
 Kevin Hsu 
