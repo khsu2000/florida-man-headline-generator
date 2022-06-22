@@ -1,5 +1,5 @@
 # Only required to run shell.py
-numpy==1.19.1
+numpy==1.22.0
 pandas==1.1.0
 
 # Required to run scraper.py (in addition to numpy and pandas)
