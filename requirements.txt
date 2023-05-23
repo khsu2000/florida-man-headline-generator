@@ -7,5 +7,5 @@ pandas==1.1.0
 # Download and unzip the latest stable version into this directory.
 # When I scraped the sources on 8/8/2020, the version I used was 84.0.4147.30. 
 beautifulsoup4==4.9.1
-requests==2.24.0
+requests==2.31.0
 selenium==3.141.0
